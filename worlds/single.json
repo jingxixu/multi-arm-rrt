@@ -1,0 +1,19 @@
+{
+    "robots_config": [
+        {
+            "initial_base_position": [0, 0, 0.02],
+            "initial_base_quaternion": [0, 0, 0, 1],
+            "initial_joint_values": [-0.813358794499552, -0.37120422397572495, -0.754454729356351, 0, 0, 0],
+            "goal_joint_values": [0.7527214782907734, -0.6521867735052328, -0.4949270744967443, 0, 0, 0]
+        }
+    ],
+
+    "obstacles": [
+        {
+            "urdf_path": "assets/block.urdf",
+            "fixed_base": true,
+            "initial_position": [0.25, 0, 0.5],
+            "initial_orientation": [0, 0, 0, 1]
+        }
+    ]
+}
