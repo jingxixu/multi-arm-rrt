@@ -1,4 +1,5 @@
 import numpy as np
+from ur5 import UR5
 
 
 class RobotGroup:
@@ -14,7 +15,7 @@ class RobotGroup:
         self.robot_ids = []
         self.dof = 0
         for pose, conf, urdf in zip(self.initial_poses, self.initial_confs, self.robot_urdfs):
-            controller = UR5(pose, conf, urdf, speed=0.35, time_step=0.01)
+            controller = UR5(pose, conf, urdf)
             self.robot_ids.append(controller.id)
             self.controllers.append(controller)
             self.dof += len(controller.GROUP_INDEX['arm'])
@@ -55,4 +56,4 @@ class RobotGroup:
 
 def split(a, n):
     k, m = divmod(len(a), n)
-    return [a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in xrange(n)]
+    return [a[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(n)]

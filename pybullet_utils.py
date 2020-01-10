@@ -10,6 +10,7 @@ from itertools import product, combinations, count
 INF = np.inf
 PI = np.pi
 CIRCULAR_LIMITS = -PI, PI
+MAX_DISTANCE = 0
 
 
 def step(duration=1.0):
@@ -338,6 +339,87 @@ def get_extend_fn(body, joints, resolutions=None):
         return waypoints
 
     return fn
+
+
+# Collision
+
+def pairwise_collision(body1, body2, max_distance=MAX_DISTANCE):  # 10000
+    return len(p.getClosestPoints(bodyA=body1, bodyB=body2, distance=max_distance)) != 0  # getContactPoints
+
+
+def pairwise_link_collision(body1, link1, body2, link2, max_distance=MAX_DISTANCE):  # 10000
+    return len(p.getClosestPoints(bodyA=body1, bodyB=body2, distance=max_distance,
+                                  linkIndexA=link1, linkIndexB=link2)) != 0  # getContactPoints
+
+
+def single_collision(body1, **kwargs):
+    for body2 in get_bodies():
+        if (body1 != body2) and pairwise_collision(body1, body2, **kwargs):
+            return True
+    return False
+
+
+def all_collision(**kwargs):
+    bodies = get_bodies()
+    for i in range(len(bodies)):
+        for j in range(i + 1, len(bodies)):
+            if pairwise_collision(bodies[i], bodies[j], **kwargs):
+                return True
+    return False
+
+
+def get_moving_links(body, moving_joints):
+    moving_links = list(moving_joints)
+    for link in moving_joints:
+        moving_links += get_link_descendants(body, link)
+    return list(set(moving_links))
+
+
+def get_moving_pairs(body, moving_joints):
+    moving_links = get_moving_links(body, moving_joints)
+    for i in range(len(moving_links)):
+        link1 = moving_links[i]
+        ancestors1 = set(get_joint_ancestors(body, link1)) & set(moving_joints)
+        for j in range(i + 1, len(moving_links)):
+            link2 = moving_links[j]
+            ancestors2 = set(get_joint_ancestors(body, link2)) & set(moving_joints)
+            if ancestors1 != ancestors2:
+                yield link1, link2
+
+
+def get_self_link_pairs(body, joints, disabled_collisions=set()):
+    moving_links = get_moving_links(body, joints)
+    fixed_links = list(set(get_links(body)) - set(moving_links))
+    check_link_pairs = list(product(moving_links, fixed_links))
+    if True:
+        check_link_pairs += list(get_moving_pairs(body, joints))
+    else:
+        check_link_pairs += list(combinations(moving_links, 2))
+    check_link_pairs = list(filter(lambda pair: not are_links_adjacent(body, *pair), check_link_pairs))
+    check_link_pairs = list(filter(lambda pair: (pair not in disabled_collisions) and
+                                                (pair[::-1] not in disabled_collisions), check_link_pairs))
+    return check_link_pairs
+
+
+def get_collision_fn(body, joints, obstacles, attachments, self_collisions, disabled_collisions):
+    check_link_pairs = get_self_link_pairs(body, joints, disabled_collisions) if self_collisions else []
+    moving_bodies = [body] + [attachment.child for attachment in attachments]
+    if obstacles is None:
+        obstacles = list(set(get_bodies()) - set(moving_bodies))
+    check_body_pairs = list(product(moving_bodies, obstacles))  # + list(combinations(moving_bodies, 2))
+
+    def collision_fn(q):
+        if violates_limits(body, joints, q):
+            return True
+        set_joint_positions(body, joints, q)
+        for attachment in attachments:
+            attachment.assign()
+        for link1, link2 in check_link_pairs:
+            if pairwise_link_collision(body, link1, body, link2):
+                return True
+        return any(pairwise_collision(*pair) for pair in check_body_pairs)
+
+    return collision_fn
 
 
 # Body and base

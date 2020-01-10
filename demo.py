@@ -74,10 +74,7 @@ if __name__ == "__main__":
     # place hoder to save the solution path
     path_conf = None
 
-    # get the collision checking function
-    from collision_utils import get_collision_fn
-
-    collision_fn = get_collision_fn(ur5.id, UR5_JOINT_INDICES, obstacles=obstacles,
+    collision_fn = pu.get_collision_fn(ur5.id, UR5_JOINT_INDICES, obstacles=obstacles,
                                     attachments=[], self_collisions=True,
                                     disabled_collisions=set())
 
@@ -114,8 +111,7 @@ if __name__ == "__main__":
 
         for i in range(1):
             start_time = time.time()
-            path_conf = rrt.rrt(fk=ur5.forward_kinematics,
-                                start=start_conf,
+            path_conf = rrt.rrt(start=start_conf,
                                 goal_sample=goal_conf,
                                 distance=ur5.arm_distance_fn,
                                 sample=ur5.arm_sample_fn,
@@ -124,7 +120,8 @@ if __name__ == "__main__":
                                 goal_probability=0.2,
                                 iterations=2000,
                                 goal_test=goal_test,
-                                visualize=True)
+                                visualize=True,
+                                fk=ur5.forward_kinematics)
 
             duration = time.time() - start_time
             print(duration)
