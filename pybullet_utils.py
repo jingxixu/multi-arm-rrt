@@ -299,16 +299,43 @@ def get_difference_fn(body, joints):
     return fn
 
 
-def get_refine_fn(body, joints, num_steps=0):
+def get_distance_fn(body, joints, weights=None):
+    if weights is None:
+        weights = 1 * np.ones(len(joints))
     difference_fn = get_difference_fn(body, joints)
-    num_steps = num_steps + 1
 
     def fn(q1, q2):
-        q = q1
+        diff = np.array(difference_fn(q2, q1))
+        return np.sqrt(np.dot(weights, diff * diff))
+
+    return fn
+
+
+def get_sample_fn(body, joints):
+    def fn():
+        values = []
+        for joint in joints:
+            limits = CIRCULAR_LIMITS if is_circular(body, joint) \
+                else get_joint_limits(body, joint)
+            values.append(np.random.uniform(*limits))
+        return list(values)
+
+    return fn
+
+
+def get_extend_fn(body, joints, resolutions=None):
+    if resolutions is None:
+        resolutions = 0.05 * np.ones(len(joints))
+    difference_fn = get_difference_fn(body, joints)
+
+    def fn(q1, q2):
+        steps = np.abs(np.divide(difference_fn(q2, q1), resolutions))
+        num_steps = int(max(steps))
+        waypoints = []
+        diffs = difference_fn(q2, q1)
         for i in range(num_steps):
-            q = tuple((1. / (num_steps - i)) * np.array(difference_fn(q2, q)) + q)
-            yield q
-            # TODO: should wrap these joints
+            waypoints.append(list(((float(i) + 1.0) / float(num_steps)) * np.array(diffs) + q1))
+        return waypoints
 
     return fn
 

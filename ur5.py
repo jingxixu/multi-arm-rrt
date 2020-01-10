@@ -47,20 +47,23 @@ class UR5:
     def __init__(self,
                  initial_pose,
                  initial_joint_values,
-                 urdf_path,
-                 speed,
-                 time_step):
+                 urdf_path):
         self.initial_pose = initial_pose
         self.initial_joint_values = initial_joint_values
         self.urdf_path = urdf_path
-        self.speed = speed
-        self.time_step = time_step
 
         self.id = p.loadURDF(self.urdf_path,
                              basePosition=self.initial_pose[0],
                              baseOrientation=self.initial_pose[1],
                              flags=p.URDF_USE_SELF_COLLISION)
-        self.set_arm_joints(self.initial_joint_values)
+
+        # for motion planning
+        self.arm_difference_fn = pu.get_difference_fn(self.id, self.GROUP_INDEX['arm'])
+        self.arm_distance_fn = pu.get_distance_fn(self.id, self.GROUP_INDEX['arm'])
+        self.arm_sample_fn = pu.get_sample_fn(self.id, self.GROUP_INDEX['arm'])
+        self.arm_extend_fn = pu.get_extend_fn(self.id, self.GROUP_INDEX['arm'])
+
+        self.reset()
 
     def set_arm_joints(self, joint_values):
         pu.set_joint_positions(self.id, self.GROUP_INDEX['arm'], joint_values)
@@ -75,19 +78,11 @@ class UR5:
     def get_eef_pose(self, link=EEF_LINK_INDEX):
         return pu.get_link_pose(self.id, link)
 
-    def plan_arm_simple(self, start_joint_values, goal_joint_values):
-        start_joint_values = np.array(start_joint_values)
-        goal_joint_values = np.array(goal_joint_values)
-
-        num_steps = int(np.max(goal_joint_values - start_joint_values) / (self.speed * self.time_step))
-        waypoints = np.linspace(start_joint_values, goal_joint_values, num_steps)
-        return waypoints
-
     def inverse_kinematics(self, position, orientation=None):
         return pu.inverse_kinematics(self.id, self.EEF_LINK_INDEX, position, orientation)
 
     def forward_kinematics(self, joint_values):
         return pu.forward_kinematics(self.id, self.GROUP_INDEX['arm'], joint_values, self.EEF_LINK_INDEX)
 
-    def sample_joint_values(self):
-        return np.random.uniform(low=self.LOWER_LIMITS, high=self.UPPER_LIMITS)
+    def reset(self):
+        self.set_arm_joints(self.initial_joint_values)
