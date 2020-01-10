@@ -40,19 +40,18 @@ if __name__ == "__main__":
 
     # load objects
     plane = p.loadURDF("plane.urdf")
+    obstacles = []
+    for d in args.world_config['obstacles']:
+        obstacles.append(p.loadURDF(fileName='assets/block.urdf',
+                                    basePosition=d['initial_position'],
+                                    baseOrientation=d['initial_quaternion'],
+                                    useFixedBase=d['fixed_base']))
+    obstacles += [plane]
     ur5_group = UR5Group(initial_poses, initial_confs, urdf_paths)
 
     # initial_pose = [[0, 0, 0.02], [0, 0, 0, 1]]
     # initial_joint_values = [-0.813358794499552, -0.37120422397572495, -0.754454729356351, 0, 0, 0]
     # ur5 = UR5(initial_pose, initial_joint_values, urdf_path)
-
-    obstacle1 = p.loadURDF('assets/block.urdf',
-                           basePosition=[1 / 4, 0, 1 / 2],
-                           useFixedBase=True)
-    obstacle2 = p.loadURDF('assets/block.urdf',
-                           basePosition=[2 / 4, 0, 2 / 3],
-                           useFixedBase=True)
-    obstacles = [plane, obstacle1, obstacle2]
 
     ## start and goal
     start_conf = [-0.813358794499552, -0.37120422397572495, -0.754454729356351, 0, 0, 0]
@@ -68,7 +67,8 @@ if __name__ == "__main__":
     #                                 attachments=[], self_collisions=True,
     #                                 disabled_collisions=set())
 
-    collision_fn = ur5_group.get_collision_fn(obstacles=obstacles, attachments=[], self_collisions=True, disabled_collisions=set())
+    collision_fn = ur5_group.get_collision_fn(obstacles=obstacles, attachments=[], self_collisions=True,
+                                              disabled_collisions=set())
     extend_fn = ur5_group.get_extend_fn()
 
     if args.birrt:
@@ -97,6 +97,7 @@ if __name__ == "__main__":
                                           smooth=None,
                                           visualize=True)
     else:
+
         # using rrt
         def goal_test(conf):
             return np.allclose(conf, goal_conf, atol=0.001, rtol=0)
@@ -127,7 +128,8 @@ if __name__ == "__main__":
         # visualize the path and execute it
         for i in range(len(path_conf)):
             if i != len(path_conf) - 1:
-                for pose1, pose2 in zip(ur5_group.forward_kinematics(path_conf[i]), ur5_group.forward_kinematics(path_conf[i + 1])):
+                for pose1, pose2 in zip(ur5_group.forward_kinematics(path_conf[i]),
+                                        ur5_group.forward_kinematics(path_conf[i + 1])):
                     pu.draw_line(pose1[0], pose2[0], rgb_color=[1, 0, 0], width=6)
         while True:
             for q in path_conf:

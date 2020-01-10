@@ -13,7 +13,13 @@
             "urdf_path": "assets/block.urdf",
             "fixed_base": true,
             "initial_position": [0.25, 0, 0.5],
-            "initial_orientation": [0, 0, 0, 1]
+            "initial_quaternion": [0, 0, 0, 1]
+        },
+        {
+            "urdf_path": "assets/block.urdf",
+            "fixed_base": true,
+            "initial_position": [0.5, 0, 0.66667],
+            "initial_quaternion": [0, 0, 0, 1]
         }
     ]
 }
