@@ -99,7 +99,7 @@ def rrt(start,
             nodes.append(last)
             if goal_test(last.config):
                 return configs(last.retrace())
-            # break
+            break
         else:
             if goal:
                 print('impossible')

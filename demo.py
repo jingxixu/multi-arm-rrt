@@ -10,6 +10,8 @@ import argparse
 from ur5 import UR5
 import json
 from ur5_group import UR5Group
+import itertools
+
 
 UR5_JOINT_INDICES = [1, 2, 3, 4, 5, 6]
 
@@ -32,6 +34,7 @@ if __name__ == "__main__":
     initial_base_quaternions = [d['initial_base_quaternion'] for d in args.world_config['robots']]
     initial_poses = [[p, q] for p, q in zip(initial_base_positions, initial_base_quaternions)]
     initial_confs = [d['initial_joint_values'] for d in args.world_config['robots']]
+    goal_confs = [d['goal_joint_values'] for d in args.world_config['robots']]
     urdf_path = 'assets/ur5/ur5.urdf'
     urdf_paths = [urdf_path] * len(args.world_config['robots'])
 
@@ -54,11 +57,12 @@ if __name__ == "__main__":
     # ur5 = UR5(initial_pose, initial_joint_values, urdf_path)
 
     ## start and goal
-    start_conf = [-0.813358794499552, -0.37120422397572495, -0.754454729356351, 0, 0, 0]
-    start_position = ur5_group.forward_kinematics(start_conf)[0][0]
-    goal_conf = [0.7527214782907734, -0.6521867735052328, -0.4949270744967443, 0, 0, 0]
-    goal_position = ur5_group.forward_kinematics(goal_conf)[0][0]
-    goal_marker = pu.draw_sphere_body(position=goal_position, radius=0.02, rgba_color=[1, 0, 0, 1])
+    start_conf = ur5_group.get_joint_positions()
+    start_poses = ur5_group.forward_kinematics(start_conf)
+    goal_conf = list(itertools.chain.from_iterable(goal_confs))
+    goal_poses = ur5_group.forward_kinematics(goal_conf)
+    for pose in goal_poses:
+        goal_marker = pu.draw_sphere_body(position=pose[0], radius=0.02, rgba_color=[1, 0, 0, 1])
 
     # place hoder to save the solution path
     path_conf = None
