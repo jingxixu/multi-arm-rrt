@@ -1,5 +1,5 @@
 {
-    "robots_config": [
+    "robots": [
         {
             "initial_base_position": [0, 0, 0.02],
             "initial_base_quaternion": [0, 0, 0, 1],

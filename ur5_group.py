@@ -1,20 +1,22 @@
 import numpy as np
 from ur5 import UR5
+import pybullet_utils as pu
+from itertools import combinations, product
 
 
-class RobotGroup:
-    def __init__(self, initial_poses, initial_confs, robot_urdfs):
-        assert len(initial_poses) == len(robot_urdfs) == len(initial_confs)
+class UR5Group:
+    def __init__(self, initial_poses, initial_confs, urdf_paths):
+        assert len(initial_poses) == len(urdf_paths) == len(initial_confs)
 
         self.initial_poses = initial_poses
         self.initial_confs = initial_confs
-        self.robot_urdfs = robot_urdfs
+        self.urdf_paths = urdf_paths
         self.num_robots = len(initial_poses)
 
         self.controllers = []
         self.robot_ids = []
         self.dof = 0
-        for pose, conf, urdf in zip(self.initial_poses, self.initial_confs, self.robot_urdfs):
+        for pose, conf, urdf in zip(self.initial_poses, self.initial_confs, self.urdf_paths):
             controller = UR5(pose, conf, urdf)
             self.robot_ids.append(controller.id)
             self.controllers.append(controller)
@@ -34,9 +36,9 @@ class RobotGroup:
 
     def difference_fn(self, q1, q2):
         difference = []
-        q1_list = split(q1, self.num_robots)
-        q2_list = split(q2, self.num_robots)
-        for ctrl, q1_, q2_ in zip(self.controllers, q1_list, q2_list):
+        split_q1 = split(q1, self.num_robots)
+        split_q2 = split(q2, self.num_robots)
+        for ctrl, q1_, q2_ in zip(self.controllers, split_q1, split_q2):
             difference += ctrl.arm_difference_fn(q1_, q2_)
         return difference
 
@@ -50,8 +52,55 @@ class RobotGroup:
             values += ctrl.arm_sample_fn()
         return values
 
-    def extend_fn(self, q1, q2):
-        pass
+    def get_extend_fn(self, resolutions=None):
+        if resolutions is None:
+            resolutions = 0.05 * np.ones(self.dof)
+
+        def fn(q1, q2):
+            steps = np.abs(np.divide(self.difference_fn(q2, q1), resolutions))
+            num_steps = int(max(steps))
+            waypoints = []
+            diffs = self.difference_fn(q2, q1)
+            for i in range(num_steps):
+                waypoints.append(list(((float(i) + 1.0) / float(num_steps)) * np.array(diffs) + q1))
+            return waypoints
+
+        return fn
+
+    def get_collision_fn(self, obstacles, attachments, self_collisions, disabled_collisions):
+        # check_link_pairs is a 2d list
+        check_link_pairs = []
+        for i in range(self.num_robots):
+            check_link_pairs.append(pu.get_self_link_pairs(self.robot_ids[i], self.controllers[i].GROUP_INDEX['arm'], disabled_collisions)
+                                    if self_collisions else [])
+        moving_bodies = self.robot_ids + [attachment.child for attachment in attachments]
+        if obstacles is None:
+            obstacles = list(set(pu.get_bodies()) - set(moving_bodies))
+        check_body_pairs = list(product(moving_bodies, obstacles)) + list(combinations(moving_bodies, 2))
+
+        def collision_fn(q):
+            split_q = split(q, self.num_robots)
+            for i, q_ in zip(range(self.num_robots), split_q):
+                if pu.violates_limits(self.robot_ids[i], self.controllers[i].GROUP_INDEX['arm'], q_):
+                    return True
+            self.set_joint_positions(q)
+            for attachment in attachments:
+                attachment.assign()
+            for i, pairs in enumerate(check_link_pairs):
+                for link1, link2 in pairs:
+                    if pu.pairwise_link_collision(self.robot_ids[i], link1, self.robot_ids[i], link2):
+                        return True
+            return any(pu.pairwise_collision(*pair) for pair in check_body_pairs)
+
+        return collision_fn
+
+    def forward_kinematics(self, q):
+        """ return a list of eef poses """
+        poses = []
+        split_q = split(q, self.num_robots)
+        for ctrl, q_ in zip(self.controllers, split_q):
+            poses.append(ctrl.forward_kinematics(q_))
+        return poses
 
 
 def split(a, n):

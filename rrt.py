@@ -53,7 +53,8 @@ def rrt(start,
         iterations=RRT_ITERATIONS,
         goal_probability=.2,
         visualize=False,
-        fk=None):
+        fk=None,
+        group=False):
     """
     RRT algorithm
     :param start: start configuration
@@ -66,7 +67,8 @@ def rrt(start,
     :param iterations: number of iterations to extend tree towards an sample
     :param goal_probability: bias probability to set the sample to goal
     :param visualize: whether draw nodes and lines for the tree
-    :param fk: forward kinematics function, return pose 2d. This is necessary when visualize is True
+    :param fk: forward kinematics function, return pose 2d or a list of pose 2d. This is necessary when visualize is True
+    :param group: whether this is a group of arms
     :return: a list of configurations
     """
     if collision(start):
@@ -86,9 +88,13 @@ def rrt(start,
                 break
             if visualize:
                 assert fk is not None, 'please provide a fk when visualizing'
-                p_now = fk(q)[0]
-                p_prev = fk(last.config)[0]
-                pu.draw_line(p_prev, p_now, rgb_color=(0, 1, 0), width=1)
+                if group:
+                    for pose_now, pose_prev in zip(fk(q), fk(last.config)):
+                        pu.draw_line(pose_prev[0], pose_now[0], rgb_color=(0, 1, 0), width=1)
+                else:
+                    p_now = fk(q)[0]
+                    p_prev = fk(last.config)[0]
+                    pu.draw_line(p_prev, p_now, rgb_color=(0, 1, 0), width=1)
             last = TreeNode(q, parent=last)
             nodes.append(last)
             if goal_test(last.config):

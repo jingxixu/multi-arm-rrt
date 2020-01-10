@@ -4,8 +4,12 @@ import numpy as np
 import time
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from collections import defaultdict, deque, namedtuple
+from collections import defaultdict, deque, namedtuple, OrderedDict
 from itertools import product, combinations, count
+import pybullet_data
+import os
+import csv
+
 
 INF = np.inf
 PI = np.pi
@@ -38,6 +42,34 @@ def get_euler_from_quaternion(quaternion):
 
 def get_quaternion_from_euler(euler):
     return list(p.getQuaternionFromEuler(euler))
+
+
+def configure_pybullet(rendering=False, debug=False, yaw=50.0, pitch=-35.0, dist=1.2, target=(0.0, 0.0, 0.0)):
+    if not rendering:
+        p.connect(p.DIRECT)
+    else:
+        p.connect(p.GUI_SERVER)
+    p.setAdditionalSearchPath(pybullet_data.getDataPath())
+    if not debug:
+        p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+    reset_camera(yaw=yaw, pitch=pitch, dist=dist, target=target)
+    p.setPhysicsEngineParameter(enableFileCaching=0)
+    p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, True)
+    p.resetSimulation()
+    p.setGravity(0, 0, -9.8)
+
+
+def write_csv_line(result_file_path, result):
+    """ write a line in a csv file; create the file and write the first line if the file does not already exist """
+    # pp = pprint.PrettyPrinter(indent=4)
+    # pp.pprint(result)
+    result = OrderedDict(result)
+    file_exists = os.path.exists(result_file_path)
+    with open(result_file_path, 'a') as csv_file:
+        writer = csv.DictWriter(csv_file, result.keys())
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(result)
 
 
 # Constraints
