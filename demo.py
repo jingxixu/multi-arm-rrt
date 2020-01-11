@@ -20,7 +20,8 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--birrt', action='store_true', default=False)
     parser.add_argument('--smoothing', action='store_true', default=False)
-    parser.add_argument('--world_file', type=str, default='worlds/single.json')
+    parser.add_argument('--world_file', type=str,
+                        default='worlds/two_arms_no_obstacles.json')
     args = parser.parse_args()
 
     args.world_config = json.load(open(args.world_file))
