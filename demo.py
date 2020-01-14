@@ -1,19 +1,10 @@
-from __future__ import division
 import pybullet as p
-import pybullet_data
-import numpy as np
 import pybullet_utils as pu
-import rrt
-import rrt_connect
 import time
 import argparse
-from ur5 import UR5
 import json
 from ur5_group import UR5Group
 import itertools
-
-
-UR5_JOINT_INDICES = [1, 2, 3, 4, 5, 6]
 
 
 def get_args():
