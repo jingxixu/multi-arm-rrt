@@ -20,7 +20,7 @@ def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--birrt', action='store_true', default=False)
     parser.add_argument('--smoothing', action='store_true', default=False)
-    parser.add_argument('--world_file', type=str, default='worlds/single.json')
+    parser.add_argument('--world_file', type=str, default='worlds/two_arms_no_obstacles.json')
     args = parser.parse_args()
 
     args.world_config = json.load(open(args.world_file))
@@ -67,63 +67,24 @@ if __name__ == "__main__":
     # place hoder to save the solution path
     path_conf = None
 
-    # collision_fn = pu.get_collision_fn(ur5.id, UR5_JOINT_INDICES, obstacles=obstacles,
-    #                                 attachments=[], self_collisions=True,
-    #                                 disabled_collisions=set())
+    start_time = time.time()
+    path_conf = ur5_group.plan_motion(start_conf=start_conf,
+                                      goal_conf=goal_conf,
+                                      planner='birrt',
+                                      smoothing=args.smoothing,
+                                      greedy=False,
+                                      goal_tolerance=0.001,
+                                      goal_bias=0.2,
+                                      resolutions=0.05,
+                                      iterations=2000,
+                                      restarts=10,
+                                      obstacles=obstacles,
+                                      attachments=[],
+                                      self_collisions=True,
+                                      disabled_collisions=set())
 
-    collision_fn = ur5_group.get_collision_fn(obstacles=obstacles, attachments=[], self_collisions=True,
-                                              disabled_collisions=set())
-    extend_fn = ur5_group.get_extend_fn()
-
-    if args.birrt:
-        if args.smoothing:
-            # using birrt with smoothing
-            path_conf = rrt_connect.birrt(ur5,
-                                          UR5_JOINT_INDICES,
-                                          start_conf,
-                                          goal_conf,
-                                          distance=pu.get_distance_fn(ur5, UR5_JOINT_INDICES),
-                                          sample=pu.get_sample_fn(ur5, UR5_JOINT_INDICES),
-                                          extend=pu.get_extend_fn(ur5, UR5_JOINT_INDICES),
-                                          collision=collision_fn,
-                                          smooth=300,
-                                          visualize=True)
-        else:
-            # using birrt without smoothing
-            path_conf = rrt_connect.birrt(ur5,
-                                          UR5_JOINT_INDICES,
-                                          start_conf,
-                                          goal_conf,
-                                          distance=pu.get_distance_fn(ur5, UR5_JOINT_INDICES),
-                                          sample=pu.get_sample_fn(ur5, UR5_JOINT_INDICES),
-                                          extend=pu.get_extend_fn(ur5, UR5_JOINT_INDICES),
-                                          collision=collision_fn,
-                                          smooth=None,
-                                          visualize=True)
-    else:
-
-        # using rrt
-        def goal_test(conf):
-            return np.allclose(conf, goal_conf, atol=0.001, rtol=0)
-
-
-        for i in range(1):
-            start_time = time.time()
-            path_conf = rrt.rrt(start=start_conf,
-                                goal_sample=goal_conf,
-                                distance=ur5_group.distance_fn,
-                                sample=ur5_group.sample_fn,
-                                extend=extend_fn,
-                                collision=collision_fn,
-                                goal_probability=0.2,
-                                iterations=2000,
-                                goal_test=goal_test,
-                                visualize=True,
-                                fk=ur5_group.forward_kinematics,
-                                group=True)
-
-            duration = time.time() - start_time
-            print(duration)
+    duration = time.time() - start_time
+    print(duration)
 
     if path_conf is None:
         # no collision-free path is found within the time budget

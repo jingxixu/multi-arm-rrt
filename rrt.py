@@ -52,6 +52,7 @@ def rrt(start,
         goal_test=lambda q: False,
         iterations=RRT_ITERATIONS,
         goal_probability=.2,
+        greedy=True,
         visualize=False,
         fk=None,
         group=False):
@@ -99,7 +100,8 @@ def rrt(start,
             nodes.append(last)
             if goal_test(last.config):
                 return configs(last.retrace())
-            break
+            if not greedy:
+                break
         else:
             if goal:
                 print('impossible')

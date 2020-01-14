@@ -10,7 +10,6 @@ import pybullet_data
 import os
 import csv
 
-
 INF = np.inf
 PI = np.pi
 CIRCULAR_LIMITS = -PI, PI
@@ -452,6 +451,13 @@ def get_collision_fn(body, joints, obstacles, attachments, self_collisions, disa
         return any(pairwise_collision(*pair) for pair in check_body_pairs)
 
     return collision_fn
+
+
+def get_goal_test_fn(goal_conf, atol=0.001, rtol=0):
+    def fn(conf):
+        return np.allclose(conf, goal_conf, atol=atol, rtol=rtol)
+
+    return fn
 
 
 # Body and base

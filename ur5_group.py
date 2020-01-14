@@ -1,7 +1,10 @@
 import numpy as np
 from ur5 import UR5
 import pybullet_utils as pu
+from rrt import rrt
+from rrt_connect import birrt
 from itertools import combinations, product
+import time
 
 
 class UR5Group:
@@ -71,8 +74,9 @@ class UR5Group:
         # check_link_pairs is a 2d list
         check_link_pairs = []
         for i in range(self.num_robots):
-            check_link_pairs.append(pu.get_self_link_pairs(self.robot_ids[i], self.controllers[i].GROUP_INDEX['arm'], disabled_collisions)
-                                    if self_collisions else [])
+            check_link_pairs.append(
+                pu.get_self_link_pairs(self.robot_ids[i], self.controllers[i].GROUP_INDEX['arm'], disabled_collisions)
+                if self_collisions else [])
         moving_bodies = self.robot_ids + [attachment.child for attachment in attachments]
         if obstacles is None:
             obstacles = list(set(pu.get_bodies()) - set(moving_bodies))
@@ -101,6 +105,72 @@ class UR5Group:
         for ctrl, q_ in zip(self.controllers, split_q):
             poses.append(ctrl.forward_kinematics(q_))
         return poses
+
+    def plan_motion(self,
+                    start_conf,
+                    goal_conf,
+                    planner,
+                    smoothing,
+                    greedy,
+                    goal_tolerance,
+                    goal_bias,
+                    resolutions,
+                    iterations,
+                    restarts,
+                    obstacles,
+                    attachments,
+                    self_collisions,
+                    disabled_collisions):
+
+        # get some functions
+        collision_fn = self.get_collision_fn(obstacles, attachments, self_collisions, disabled_collisions)
+        goal_test = pu.get_goal_test_fn(goal_conf, goal_tolerance)
+        extend_fn = self.get_extend_fn(resolutions)
+
+        if planner == 'rrt':
+            for i in range(restarts):
+                iter_start = time.time()
+                path_conf = rrt(start=start_conf,
+                                goal_sample=goal_conf,
+                                distance=self.distance_fn,
+                                sample=self.sample_fn,
+                                extend=extend_fn,
+                                collision=collision_fn,
+                                goal_probability=goal_bias,
+                                iterations=iterations,
+                                goal_test=goal_test,
+                                greedy=greedy,
+                                visualize=True,
+                                fk=self.forward_kinematics,
+                                group=True)
+                iter_time = time.time() - iter_start
+                if path_conf is None:
+                    print('trial {} ({} iterations) fails in {:.2f} seconds'.format(i + 1, iterations, iter_time))
+                    pu.remove_all_markers()
+                else:
+                    return path_conf
+        elif planner == 'birrt':
+            for i in range(restarts):
+                iter_start = time.time()
+                path_conf = birrt(q1=start_conf,
+                                  q2=goal_conf,
+                                  distance=self.distance_fn,
+                                  sample=self.sample_fn,
+                                  extend=extend_fn,
+                                  collision=collision_fn,
+                                  iterations=iterations,
+                                  smooth=smoothing,
+                                  visualize=True,
+                                  fk=self.forward_kinematics,
+                                  group=True)
+                iter_time = time.time() - iter_start
+                if path_conf is None:
+                    print('trial {} ({} iterations) fails in {:.2f} seconds'.format(i + 1, iterations, iter_time))
+                    pu.remove_all_markers()
+                else:
+                    return path_conf
+        else:
+            raise ValueError('planner must be in \'rrt\' or \'birrt\'')
 
 
 def split(a, n):
