@@ -3,7 +3,7 @@ Tested under python 3.7.4 and pybullet 2.5.6
 
 ## Usage
 Please specify the initial configuration of UR5 arm(s) and obstacles in a `json` file. 
-An example is [`worlds/single_arm_with_obstacles`](world/single_arm_with_obstacles.json).
+An example is [`worlds/single_arm_with_obstacles`](worlds/single_arm_with_obstacles.json).
 
 The [`demo.py`](demo.py) file takes the following arguments
 - `world_file`: path to the `json` file specifying the world configuration
