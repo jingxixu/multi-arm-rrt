@@ -109,18 +109,18 @@ class UR5Group:
     def plan_motion(self,
                     start_conf,
                     goal_conf,
-                    planner,
-                    smoothing,
-                    greedy,
-                    goal_tolerance,
-                    goal_bias,
-                    resolutions,
-                    iterations,
-                    restarts,
-                    obstacles,
-                    attachments,
-                    self_collisions,
-                    disabled_collisions):
+                    planner='birrt',
+                    smooth=200,
+                    greedy=True,
+                    goal_tolerance=0.001,
+                    goal_bias=0.2,
+                    resolutions=0.05,
+                    iterations=2000,
+                    restarts=10,
+                    obstacles=[],
+                    attachments=[],
+                    self_collisions=True,
+                    disabled_collisions=set()):
 
         # get some functions
         collision_fn = self.get_collision_fn(obstacles, attachments, self_collisions, disabled_collisions)
@@ -152,17 +152,18 @@ class UR5Group:
         elif planner == 'birrt':
             for i in range(restarts):
                 iter_start = time.time()
-                path_conf = birrt(q1=start_conf,
-                                  q2=goal_conf,
+                path_conf = birrt(start_conf=start_conf,
+                                  goal_conf=goal_conf,
                                   distance=self.distance_fn,
                                   sample=self.sample_fn,
                                   extend=extend_fn,
                                   collision=collision_fn,
                                   iterations=iterations,
-                                  smooth=smoothing,
+                                  smooth=smooth,
                                   visualize=True,
                                   fk=self.forward_kinematics,
-                                  group=True)
+                                  group=True,
+                                  greedy=greedy)
                 iter_time = time.time() - iter_start
                 if path_conf is None:
                     print('trial {} ({} iterations) fails in {:.2f} seconds'.format(i + 1, iterations, iter_time))

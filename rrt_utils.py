@@ -3,10 +3,6 @@ from itertools import islice
 
 INF = float('inf')
 
-RRT_ITERATIONS = 2000
-RRT_RESTARTS = 2
-RRT_SMOOTHING = 20
-
 
 def irange(start, stop=None, step=1):  # np.arange
     if stop is None:

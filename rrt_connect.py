@@ -1,10 +1,20 @@
 from smoothing import smooth_path
 from rrt import TreeNode, configs
-from rrt_utils import irange, argmin, RRT_ITERATIONS, RRT_RESTARTS, RRT_SMOOTHING
+from rrt_utils import irange, argmin
 import pybullet_utils as pu
 
 
-def rrt_connect(q1, q2, distance, sample, extend, collision, iterations=RRT_ITERATIONS, visualize=False, fk=None, group=False):
+def rrt_connect(q1,
+                q2,
+                distance,
+                sample,
+                extend,
+                collision,
+                iterations,
+                visualize,
+                fk,
+                group,
+                greedy):
     if collision(q1) or collision(q2):
         return None
     root1, root2 = TreeNode(q1), TreeNode(q2)
@@ -33,7 +43,8 @@ def rrt_connect(q1, q2, distance, sample, extend, collision, iterations=RRT_ITER
                     pu.draw_line(p_prev, p_now, rgb_color=color1, width=1)
             last1 = TreeNode(q, parent=last1)
             nodes1.append(last1)
-            break
+            if not greedy:
+                break
 
         last2 = argmin(lambda n: distance(n.config, last1.config), nodes2)
         for q in extend(last2.config, last1.config):
@@ -50,7 +61,8 @@ def rrt_connect(q1, q2, distance, sample, extend, collision, iterations=RRT_ITER
                     pu.draw_line(p_prev, p_now, rgb_color=color2, width=1)
             last2 = TreeNode(q, parent=last2)
             nodes2.append(last2)
-            break
+            if not greedy:
+                break
         if last2.config == last1.config:
             path1, path2 = last1.retrace(), last2.retrace()
             if path1[0] != root1:
@@ -72,17 +84,34 @@ def direct_path(q1, q2, extend, collision):
     return path
 
 
-def birrt(q1, q2, distance, sample, extend, collision,
-          iterations=2000, smooth=None, visualize=False, fk=None, group=True):
-    if collision(q1) or collision(q2):
+def birrt(start_conf,
+          goal_conf,
+          distance,
+          sample,
+          extend,
+          collision,
+          iterations,
+          smooth,
+          visualize,
+          fk,
+          group,
+          greedy):
+    if collision(start_conf) or collision(goal_conf):
         return None
-    path = direct_path(q1, q2, extend, collision)
+    path = direct_path(start_conf, goal_conf, extend, collision)
     if path is not None:
         return path
-    path = rrt_connect(q1, q2, distance, sample, extend,
-                       collision, iterations=iterations, visualize=visualize, fk=fk, group=group)
+    path = rrt_connect(start_conf,
+                       goal_conf,
+                       distance,
+                       sample,
+                       extend,
+                       collision,
+                       iterations,
+                       visualize,
+                       fk,
+                       group,
+                       greedy)
     if path is not None:
-        if smooth is None:
-            return path
         return smooth_path(path, extend, collision, iterations=smooth)
     return None
