@@ -3,10 +3,10 @@ Tested under python 3.7.4 and pybullet 2.5.6
 
 ## Usage
 Please specify the initial configuration of UR5 arm(s) and obstacles in a `.json` file. 
-An example is [`/worlds/single_arm_with_obstacles`](`/world/single_arm_with_obstacles`).
+An example is [`worlds/single_arm_with_obstacles`](`world/single_arm_with_obstacles`).
 
 The [`demo.py`](demo.py) file takes the following arguments
-- `--world_file`: path to the `/json` file specifying the world configuration
+- `--world_file`: path to the `.json` file specifying the world configuration
 - `--planner`: one of 'rrt' or 'birrt'
 - `--smooth`: number of smoothing iterations in postprocessing. This is currently only supported in 
 birrt planner. 0 means no smoothing.
