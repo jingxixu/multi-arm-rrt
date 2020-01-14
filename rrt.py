@@ -1,9 +1,7 @@
 from random import random
 
-from rrt_utils import irange, argmin, RRT_ITERATIONS
+from rrt_utils import irange, argmin
 import pybullet_utils as pu
-import pybullet as p
-import numpy as np
 
 
 class TreeNode(object):
@@ -50,8 +48,9 @@ def rrt(start,
         extend,
         collision,
         goal_test=lambda q: False,
-        iterations=RRT_ITERATIONS,
+        iterations=2000,
         goal_probability=.2,
+        greedy=True,
         visualize=False,
         fk=None,
         group=False):
@@ -99,7 +98,8 @@ def rrt(start,
             nodes.append(last)
             if goal_test(last.config):
                 return configs(last.retrace())
-            break
+            if not greedy:
+                break
         else:
             if goal:
                 print('impossible')

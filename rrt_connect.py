@@ -1,10 +1,20 @@
 from smoothing import smooth_path
 from rrt import TreeNode, configs
-from rrt_utils import irange, argmin, RRT_ITERATIONS, RRT_RESTARTS, RRT_SMOOTHING
+from rrt_utils import irange, argmin
 import pybullet_utils as pu
 
 
-def rrt_connect(robot, joints, q1, q2, distance, sample, extend, collision, iterations=RRT_ITERATIONS, visualize=False):
+def rrt_connect(q1,
+                q2,
+                distance,
+                sample,
+                extend,
+                collision,
+                iterations,
+                visualize,
+                fk,
+                group,
+                greedy):
     if collision(q1) or collision(q2):
         return None
     root1, root2 = TreeNode(q1), TreeNode(q2)
@@ -23,31 +33,43 @@ def rrt_connect(robot, joints, q1, q2, distance, sample, extend, collision, iter
             if collision(q):
                 break
             if visualize:
-                p_now, _ = pu.forward_kinematics(robot, joints, q)
-                p_prev, _ = pu.forward_kinematics(robot, joints, last1.config)
-                pu.add_line(p_prev, p_now, color=color1)
+                assert fk is not None, 'please provide a fk when visualizing'
+                if group:
+                    for pose_now, pose_prev in zip(fk(q), fk(last1.config)):
+                        pu.draw_line(pose_prev[0], pose_now[0], rgb_color=color1, width=1)
+                else:
+                    p_now = fk(q)[0]
+                    p_prev = fk(last1.config)[0]
+                    pu.draw_line(p_prev, p_now, rgb_color=color1, width=1)
             last1 = TreeNode(q, parent=last1)
             nodes1.append(last1)
-            break
-
+            if not greedy:
+                break
 
         last2 = argmin(lambda n: distance(n.config, last1.config), nodes2)
         for q in extend(last2.config, last1.config):
             if collision(q):
                 break
             if visualize:
-                p_now, _ = pu.forward_kinematics(robot, joints, q)
-                p_prev, _ = pu.forward_kinematics(robot, joints, last2.config)
-                pu.add_line(p_prev, p_now, color=color2)
+                assert fk is not None, 'please provide a fk when visualizing'
+                if group:
+                    for pose_now, pose_prev in zip(fk(q), fk(last2.config)):
+                        pu.draw_line(pose_prev[0], pose_now[0], rgb_color=color2, width=1)
+                else:
+                    p_now = fk(q)[0]
+                    p_prev = fk(last2.config)[0]
+                    pu.draw_line(p_prev, p_now, rgb_color=color2, width=1)
             last2 = TreeNode(q, parent=last2)
             nodes2.append(last2)
-            break
+            if not greedy:
+                break
         if last2.config == last1.config:
             path1, path2 = last1.retrace(), last2.retrace()
             if path1[0] != root1:
                 path1, path2 = path2, path1
             return configs(path1[:-1] + path2[::-1])
     return None
+
 
 # TODO: version which checks whether the segment is valid
 
@@ -62,18 +84,34 @@ def direct_path(q1, q2, extend, collision):
     return path
 
 
-def birrt(robot, joints, q1, q2, distance, sample, extend, collision,
-          restarts=RRT_RESTARTS, iterations=RRT_ITERATIONS, smooth=RRT_SMOOTHING, visualize=False):
-    if collision(q1) or collision(q2):
+def birrt(start_conf,
+          goal_conf,
+          distance,
+          sample,
+          extend,
+          collision,
+          iterations,
+          smooth,
+          visualize,
+          fk,
+          group,
+          greedy):
+    if collision(start_conf) or collision(goal_conf):
         return None
-    path = direct_path(q1, q2, extend, collision)
+    path = direct_path(start_conf, goal_conf, extend, collision)
     if path is not None:
         return path
-    for _ in irange(restarts + 1):
-        path = rrt_connect(robot, joints, q1, q2, distance, sample, extend,
-                           collision, iterations=iterations, visualize=visualize)
-        if path is not None:
-            if smooth is None:
-                return path
-            return smooth_path(path, extend, collision, iterations=smooth)
+    path = rrt_connect(start_conf,
+                       goal_conf,
+                       distance,
+                       sample,
+                       extend,
+                       collision,
+                       iterations,
+                       visualize,
+                       fk,
+                       group,
+                       greedy)
+    if path is not None:
+        return smooth_path(path, extend, collision, iterations=smooth)
     return None
