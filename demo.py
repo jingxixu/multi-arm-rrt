@@ -31,7 +31,8 @@ if __name__ == "__main__":
     urdf_paths = [urdf_path] * len(args.world_config['robots'])
 
     # set up simulator
-    pu.configure_pybullet(rendering=True, debug=False, yaw=58, pitch=-42, dist=1.4, target=(0, 0, 0.5))
+    # pu.configure_pybullet(rendering=True, debug=False, yaw=58, pitch=-42, dist=1.4, target=(0, 0, 0.5))
+    pu.configure_pybullet(rendering=True, debug=False, yaw=58, pitch=-42, dist=2.6, target=(0, -0.5, 0.5))
 
     # load objects
     plane = p.loadURDF("plane.urdf")
