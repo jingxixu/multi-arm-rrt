@@ -27,3 +27,8 @@ Two arms without any obstacles
 ```
 python demo.py --world_file worlds/two_arms_no_obstacles.json
 ```
+
+Ten arms without any obstacles
+```
+python demo.py --world_file worlds/ten_arms_no_obstacles.json
+```
