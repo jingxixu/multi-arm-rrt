@@ -2,6 +2,7 @@ import numpy as np
 from ur5 import UR5
 import pybullet_utils as pu
 from rrt import rrt
+from rrt_star import rrt_star, rrt_star_connect
 from rrt_connect import birrt
 from itertools import combinations, product
 import time
@@ -164,6 +165,51 @@ class UR5Group:
                                   fk=self.forward_kinematics,
                                   group=True,
                                   greedy=greedy)
+                iter_time = time.time() - iter_start
+                if path_conf is None:
+                    print('trial {} ({} iterations) fails in {:.2f} seconds'.format(i + 1, iterations, iter_time))
+                    pu.remove_all_markers()
+                else:
+                    return path_conf
+        elif planner == 'rrt_star':
+            for i in range(restarts):
+                iter_start = time.time()
+                path_conf = rrt_star(start=start_conf,
+                                     goal=goal_conf,
+                                     distance=self.distance_fn,
+                                     sample=self.sample_fn,
+                                     extend=extend_fn,
+                                     collision=collision_fn,
+                                     radius=0.15,
+                                     goal_probability=goal_bias,
+                                     informed=False,
+                                     # iterations=iterations,
+                                     # goal_test=goal_test,
+                                     # greedy=greedy,
+                                     visualize=True,
+                                     fk=self.forward_kinematics,
+                                     group=True
+                                     )
+                iter_time = time.time() - iter_start
+                if path_conf is None:
+                    print('trial {} ({} iterations) fails in {:.2f} seconds'.format(i + 1, iterations, iter_time))
+                    pu.remove_all_markers()
+                else:
+                    return path_conf
+        elif planner == 'birrt_star':
+            for i in range(restarts):
+                iter_start = time.time()
+                path_conf = rrt_star_connect(start=start_conf,
+                                             goal=goal_conf,
+                                             distance=self.distance_fn,
+                                             sample=self.sample_fn,
+                                             extend=extend_fn,
+                                             collision=collision_fn,
+                                             radius=0.15,
+                                             visualize=True,
+                                             fk=self.forward_kinematics,
+                                             group=True,
+                                             max_time=40)
                 iter_time = time.time() - iter_start
                 if path_conf is None:
                     print('trial {} ({} iterations) fails in {:.2f} seconds'.format(i + 1, iterations, iter_time))
